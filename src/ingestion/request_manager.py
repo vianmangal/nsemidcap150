@@ -22,6 +22,13 @@ DEFAULT_HEADERS: Mapping[str, str] = {
     "Connection": "keep-alive",
 }
 
+USER_AGENTS: tuple[str, ...] = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Safari/605.1.15",
+)
+
 
 class RequestError(RuntimeError):
     pass
@@ -56,6 +63,11 @@ class RequestManager:
         delay = random.uniform(self.min_delay, self.max_delay)
         time.sleep(delay)
 
+    def _rotate_headers(self) -> None:
+        headers = dict(self.base_headers)
+        headers["User-Agent"] = random.choice(USER_AGENTS)
+        self.session.headers.update(headers)
+
     @retry(
         retry=retry_if_exception_type((requests.RequestException, HttpStatusError)),
         stop=stop_after_attempt(5),
@@ -63,8 +75,12 @@ class RequestManager:
         reraise=True,
     )
     def _request(self, method: str, url: str, **kwargs: object) -> requests.Response:
+        self._rotate_headers()
         self._sleep()
         response = self.session.request(method, url, timeout=self.timeout, **kwargs)
+        if response.status_code in {401, 403}:
+            # Re-prime NSE session cookies and retry via tenacity.
+            self.prime_nse_session()
         if not response.ok:
             raise HttpStatusError(response.status_code, url)
         return response

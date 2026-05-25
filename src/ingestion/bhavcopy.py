@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from .cache import FileCache
-from .request_manager import RequestManager, HttpStatusError
+from .request_manager import RequestManager, HttpStatusError, RequestError
 from utils.paths import ensure_dir
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +19,19 @@ BHAVCOPY_FALLBACK_DAYS = 7
 
 def bhavcopy_url(as_of: date) -> str:
     return BHAVCOPY_URL.format(date=as_of.strftime("%d%m%Y"))
+
+
+def is_valid_bhavcopy(content: bytes) -> bool:
+    if not content:
+        return False
+    snippet = content[:2048]
+    try:
+        text = snippet.decode("utf-8", errors="ignore").upper()
+    except Exception:
+        return False
+    if "<HTML" in text or "ACCESS DENIED" in text:
+        return False
+    return "SYMBOL" in text and "SERIES" in text
 
 
 def download_bhavcopy_csv(
@@ -46,11 +59,22 @@ def download_bhavcopy_csv(
         LOGGER.info("Downloading bhavcopy: %s", url)
         try:
             response = manager.get(url, headers={"Referer": "https://www.nseindia.com/"})
+            content = response.content
+            if not is_valid_bhavcopy(content):
+                LOGGER.warning("Invalid bhavcopy content for %s", candidate)
+                continue
         except HttpStatusError as exc:
             if exc.status_code == 404:
                 continue
-            raise
-        content = response.content
+            LOGGER.warning("Bhavcopy download failed for %s: %s", candidate, exc)
+            continue
+        except RequestError as exc:
+            LOGGER.warning("Bhavcopy download error for %s: %s", candidate, exc)
+            continue
+        except Exception as exc:
+            LOGGER.warning("Unexpected bhavcopy error for %s: %s", candidate, exc)
+            continue
+
         cache.write_bytes(cache_key, content)
         if candidate != as_of:
             LOGGER.info("Fallback bhavcopy date used: %s", candidate)

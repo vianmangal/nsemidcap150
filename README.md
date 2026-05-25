@@ -57,6 +57,20 @@ Set these in .env:
 ## Notes
 Phase-specific modules will be added iteratively. See plan.md for the full roadmap.
 
+## Streamlit Dashboard (Phase 10)
+Run the dashboard locally:
+
+```bash
+pip install -r requirements.txt
+python scripts/run_dashboard.py
+```
+
+Or directly:
+
+```bash
+streamlit run dashboard.py
+```
+
 ## GitHub Actions Automation (Phase 8)
 The workflow is in [.github/workflows/screener.yml](.github/workflows/screener.yml) and runs daily plus on manual trigger.
 

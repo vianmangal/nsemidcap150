@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.Python
+build/
+dist/
+*.log
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Dependency directories
+__pypackages__/
+pip-wheel-metadata/
+wheelhouse/
+node_modules/
+
+# Test / lint / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Secrets and local env files
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.crt
+*.pfx
+*.p12
+*.der
+*.keystore
+*credentials*.json
+vian1-497316-548829a92225.json
